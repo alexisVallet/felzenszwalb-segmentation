@@ -13,7 +13,7 @@
 #include "WeightedGraph.hpp"
 #include "DisjointSet.hpp"
 #include "Utils.hpp"
-#include "ImageGraphs.h"
+#include "ImageGraphs.hpp"
 #include "SegmentationGraph.hpp"
 
 using namespace std;
@@ -70,3 +70,22 @@ DisjointSetForest combineSegmentations(const WeightedGraph &imageGraph, vector<D
  * elements in the segmentation.
  */
 //void fuseComponentsDownTo(int nbComponents, DisjointSetForest &segmentation, const WeightedGraph& gridGraph);
+
+/**
+ * Segments an image using Felzenszwalb's method. Returns the result as
+ * a disjoint set forest data structure. Also goes through a post processing
+ * phase to weed out small components.
+ *
+ * @param k scale parameter.
+ * @param image image to segment. Can have an arbitrary number of channels - can be
+ *        a feature map of some kind.
+ * @param minCompSize minimum size of components.
+ * @param scaleType type of scale measure to use for segment size in the threshold
+ * function. This is defined as cardinality in the original paper by Felzenszwalb,
+ * but we introduce volume as a way of making the algorithm sensitive to local
+ * scale.
+ * @return a segmentation of the image as a disjoint set forest in row-major order.
+ */
+DisjointSetForest felzenszwalbImageSegment(int k, const Mat &image, 
+					   const Mat_<float> &mask, int minCompSize,
+					   ScaleType ScaleType = CARDINALITY);

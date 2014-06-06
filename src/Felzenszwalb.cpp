@@ -161,3 +161,17 @@ void fuseComponentsDownTo(int nbComponents, DisjointSetForest &segmentation, con
 	}
 }
 */
+
+static double euclidDistance(const Mat &m1, const Mat &m2) {
+  return norm(m1 - m2);
+}
+
+DisjointSetForest felzenszwalbImageSegment(int k, const Mat &image, 
+					   const Mat_<float> &mask, int minCompSize,
+					   ScaleType ScaleType = CARDINALITY,
+					   ) {
+  assert(k >= 0);
+  WeightedGraph graph = gridGraph(image, CONNECTIVITY_4, mask, euclidDistance, false);
+  
+  return felzenszwalbSegment(k, graph, minCompSize, mask, ScaleType);
+}
