@@ -27,7 +27,7 @@ using namespace std;
  * adjacency list representation. This is useful for more efficient listing of vertices
  * neighbors, but consumes more space.
  */
-WeightedGraph gridGraph(const Mat &image, ConnectivityType connectivity, Mat_<float> mask, double (*simFunc)(const Mat*, const Mat*), bool bidirectional = false);
+WeightedGraph gridGraph(Mat &image, ConnectivityType connectivity, Mat_<float> mask, double (*simFunc)(const Mat&, const Mat&), bool bidirectional, int rows, int cols, int fdim);
 
 /**
  * Returns a graph where vertices are pixels in the image, and every vertex has an edge

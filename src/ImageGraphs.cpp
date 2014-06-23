@@ -3,33 +3,43 @@
 #define MIN_EDGE_WEIGHT 0
 #define HUE_FACTOR (1./500.)
 
-WeightedGraph gridGraph(const Mat &image, ConnectivityType connectivity, Mat_<float> mask, double (*simFunc)(const Mat*, const Mat*), bool bidirectional) {
-  assert(image.rows == mask.rows && image.cols == mask.cols);
-  WeightedGraph grid(image.cols*image.rows, 4);
+static Mat featureat(Mat &fmap, int i, int j, int fdim) {
+  Mat feature(fdim, 1,  CV_32FC1);
+
+  for (int k = 0; k < fdim; k++) {
+    feature.at<float>(k,0) = fmap.at<float>(i,j,k);
+  }
+
+  return feature;
+}
+
+WeightedGraph gridGraph(Mat &image, ConnectivityType connectivity, Mat_<float> mask, double (*simFunc)(const Mat&, const Mat&), bool bidirectional, int rows, int cols, int fdim) {
+  assert(rows == mask.rows && cols == mask.cols);
+  WeightedGraph grid(cols*rows, 4);
   // indicates neigbor positions depending on connectivity
   int numberOfNeighbors[2] = {2, 4};
   int colOffsets[2][4] = {{0, 1, 0, 0}, {-1, 0, 1, 1}};
   int rowOffsets[2][4] = {{1, 0, 0, 0}, { 1, 1, 1, 0}};
 
-  for (int i = 0; i < image.rows; i++) {
-    for (int j = 0; j < image.cols; j++) {
+  for (int i = 0; i < rows; i++) {
+    for (int j = 0; j < cols; j++) {
       if (mask(i,j) >= 0.5) {
-	int centerIndex = toRowMajor(image.cols, j,i);
+	int centerIndex = toRowMajor(cols, j,i);
 	assert(centerIndex >= 0 && centerIndex < grid.numberOfVertices());
-	Mat center = image.at<Mat>(i,j);
+	Mat center = featureat(image, i, j, fdim);
       
 	for (int n = 0; n < numberOfNeighbors[connectivity]; n++) {
 	  int neighborRow = i + rowOffsets[connectivity][n];
 	  int neighborCol = j + colOffsets[connectivity][n];
 	
-	  if (neighborRow >= 0 && neighborRow < image.rows &&
-	      neighborCol >= 0 && neighborCol < image.cols &&
+	  if (neighborRow >= 0 && neighborRow < rows &&
+	      neighborCol >= 0 && neighborCol < cols &&
 	      mask(neighborRow, neighborCol) >= 0.5) {
-	    int neighborIndex = toRowMajor(image.cols, neighborCol, neighborRow);
-	    Mat neighbor = image.at<Mat>(neighborRow, neighborCol);
+	    int neighborIndex = toRowMajor(cols, neighborCol, neighborRow);
+	    Mat neighbor = featureat(image, neighborRow, neighborCol, fdim);
 	  
 	    assert(neighborIndex >= 0 && neighborIndex < grid.numberOfVertices());
-	    float weight = (float)simFunc(&center, &neighbor);
+	    float weight = (float)simFunc(center, neighbor);
 
 	    grid.addEdge(centerIndex, neighborIndex, weight + MIN_EDGE_WEIGHT);
 

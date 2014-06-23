@@ -4,6 +4,9 @@
  */
 #pragma once
 
+#include <stdlib.h>
+#include <stdio.h>
+
 #include <iostream>
 #include <vector>
 #include <algorithm>
@@ -23,7 +26,7 @@ using namespace cv;
  * cardinality (the number of element for finite graphs) or volume (the sum of
  * degrees) of the vertex set.
  */
-enum ScaleType { CARDINALITY, VOLUME };
+enum ScaleType { CARDINALITY = 0, VOLUME = 1};
 
 /**
  * Segments a graph using Felzenszwalb's method. Returns the result as
@@ -50,24 +53,25 @@ extern "C" {
 
   void *free_graph(WeightedGraph *graph);
 
+  
+  // Wrapper for the DisjointSetForest class.
+  DisjointSetForest *new_DisjointSetForest(int nbelems);
+  
+  void free_dsf(DisjointSetForest *forest);
+
+  int find(DisjointSetForest *forest, int elem);
+
+  int setUnion(DisjointSetForest *forest, int e1, int e2);
+
+  int getNumberOfComponents(DisjointSetForest *forest);
+
+  int getComponentSize(DisjointSetForest *forest, int elem);
+
   /**
-   * Wrapper for the DisjointSetForest class.
+   * Wrapper for felzenszwalb's segmentation algorithm.
    */
-  // DisjointSetForest new_DisjointSetForest(int nbelems);
-
-  // int find(DisjointSetForest *forest, int elem);
-
-  // int setUnion(DisjointSetForest *forest, int e1, int e2);
-
-  // int getNumberOfComponents(DisjointSetForest *forest);
-
-  // int getComponentSize(DisjointSetForest *forest, int elem);
-
-  // /**
-  //  * Wrapper for felzenszwalb's segmentation algorithm.
-  //  */
-  // DisjointSetForest c_felzenszwalbSegment(int k, const WeightedGraph *graph,
-  // 					  int mincompsize,
-  // 					  int rows, int cols,
-  // 					  ScaleType st);
+  DisjointSetForest *c_felzenszwalbSegment(int k, const WeightedGraph *graph,
+					   int mincompsize,
+					   int rows, int cols,
+					   ScaleType st);
 }
