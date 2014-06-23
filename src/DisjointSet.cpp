@@ -130,7 +130,7 @@ int DisjointSetForest::getNumberOfElements() const {
 }
 
 ostream &operator<<(ostream &os, DisjointSetForest &forest) {
-	vector<vector<int>> comps(forest.getNumberOfComponents());
+	vector<vector<int> > comps(forest.getNumberOfComponents());
 
 	for (int i = 0; i < forest.getNumberOfElements(); i++) {
 		int root = forest.find(i);

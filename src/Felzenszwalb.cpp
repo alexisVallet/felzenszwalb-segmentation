@@ -4,10 +4,6 @@ static bool compareWeights(Edge edge1, Edge edge2) {
   return edge1.weight < edge2.weight;
 }
 
-static double constOne(const Mat& m1, const Mat& m2) {
-	return 1;
-}
-
 DisjointSetForest felzenszwalbSegment(int k, WeightedGraph graph, int minCompSize, Mat_<float> mask, ScaleType scaleType) {
 	// sorts edge in increasing weight order
 	vector<Edge> edges = graph.getEdges();
@@ -72,106 +68,69 @@ DisjointSetForest felzenszwalbSegment(int k, WeightedGraph graph, int minCompSiz
 	return segmentation;
 }
 
-DisjointSetForest combineSegmentations(const WeightedGraph &graph, vector<DisjointSetForest> &segmentations) {
-  DisjointSetForest combination(graph.numberOfVertices());
-  vector<Edge> edges = graph.getEdges();
+static double correlation_distance(const Mat *f1, const Mat *f2) {
+  Mat zeromean1 = (*f1 - mean(*f1));
+  Mat zeromean2 = (*f2 - mean(*f2)); 
 
-  for (int i = 0; i < (int)edges.size(); i++) {
-    Edge edge = edges[i];
-    bool areInSameComponents = true;
+  return 
+    1. - (zeromean1.dot(zeromean2) / (norm(zeromean1)*norm(zeromean2)));
+}
 
-    for (int j = 0; j < (int)segmentations.size(); j++) {
-      int sourceRoot = segmentations[j].find(edge.source);
-      int destinationRoot = segmentations[j].find(edge.destination);
-      
-      areInSameComponents = 
-	areInSameComponents && (sourceRoot == destinationRoot);
-    }
+extern "C" {
+  /**
+   * Wrapper for the graph functions.
+   */
+  WeightedGraph *c_gridGraph(const float *image, int rows, int cols, 
+			    int fdim, int bidirectional) {
+    // convert the raw image data to the appropriate format
+    int sizes[] = {rows, cols, fdim};
+    Mat featmap(3, sizes, CV_32F, (void*)image);
+    Mat_<float> mask = Mat_<float>::ones(rows, cols);
+    WeightedGraph *outgraph = new WeightedGraph(rows * cols, 4);
 
-    if (areInSameComponents) {
-      combination.setUnion(edge.source, edge.destination);
-    }
+    *outgraph = gridGraph(featmap, CONNECTIVITY_4, mask, 
+			  correlation_distance,
+			  bidirectional == 0 ? false : true);
+
+    return outgraph;
   }
 
-  return combination;
-}
+  void *free_graph(WeightedGraph *graph) {
+    delete graph;
+  }
 
-class EdgeCompare {
-public:
-	EdgeCompare();
+  /**
+   * Wrapper for the DisjointSetForest class.
+   */
+  DisjointSetForest new_DisjointSetForest(int nbelems) {
+    return DisjointSetForest(nbelems);
+  }
 
-	bool operator()(const Edge &e1, const Edge &e2) {
-		return e1.weight > e2.weight;
-	}
-};
-/*
-typedef fibonacci_heap<Edge, boost::heap::compare<EdgeCompare> > PriorityQueue;
-typedef typename PriorityQueue::handle_type handle_t;
+  int find(DisjointSetForest *forest, int elem) {
+    return forest->find(elem);
+  }
 
-static void updateWeights(PriorityQueue &queue, vector<list<pair<handle_t, int> > > &bidirAdjList, DisjointSetForest &segmentation, int vertex) {
-	for (int i = 0; i < (int)bidirAdjList[vertex].size(); i++) {
-		pair<handle_t, int> dst = bidirAdjList[vertex][i];
-		int srcSize = segmentation.getComponentSize(vertex);
-		int dstSize = segmentation.getComponentSize(dst.second);
+  int setUnion(DisjointSetForest *forest, int e1, int e2) {
+    return forest->setUnion(e1, e2);
+  }
 
-		queue.increase(dst.first, srcSize + dstSize);
-	}
-}
+  int getNumberOfComponents(DisjointSetForest *forest) {
+    return forest->getNumberOfComponents();
+  }
 
-void fuseComponentsDownTo(int nbComponents, DisjointSetForest &segmentation, const WeightedGraph& gridGraph) {
-	// Compute the region adjacency graph of the segmentation, weighted by
-	// sum of incident segment cardinality.
-	WeightedGraph rag = segmentationGraph(segmentation, gridGraph);
+  int getComponentSize(DisjointSetForest *forest, int elem) {
+    return forest->getComponentSize(elem);
+  }
 
-	// store the edges, weighed by sum of incident segment size, into a min-heap
-	// mutable priority queue data structure.
-	
-	// bidirectional adjacency list data structure for storing incident edges
-	// handles
-	vector<list<pair<handle_t, int> > > bidirAdjList(rag.numberOfVertices());
-	EdgeCompare compare;
-	PriorityQueue queue(compare);
+  /**
+   * Wrapper for felzenszwalb's segmentation algorithm.
+   */
+  DisjointSetForest c_felzenszwalbSegment(int k, const WeightedGraph *graph,
+					  int mincompsize,
+					  int rows, int cols,
+					  ScaleType st) {
+    Mat_<float> mask = Mat_<float>::ones(rows, cols);
 
-	for (int i = 0; i < (int)rag.getEdges().size(); i++) {
-		Edge edge = rag.getEdges()[i];
-		Edge weighted;
-		int srcSize = segmentation.getComponentSize(edge.source);
-		int dstSize = segmentation.getComponentSize(edge.destination);
-
-		weighted.source = edge.source;
-		weighted.destination = edge.destination;
-		weighted.weight = srcSize + dstSize;
-
-		handle_t edgeHandle = queue.push(weighted);
-
-		bidirAdjList[edge.source].push_back(pair<handle_t, int>(edgeHandle, edge.destination));
-		bidirAdjList[edge.destination].push_back(pair<handle_t, int>(edgeHandle, edge.source));
-	}
-
-	// pop edges from the queue, fusing source and destination until the number of
-	// components is small enough. Update weights accordingly.
-	while (segmentation.getNumberOfComponents() > nbComponents) {
-		Edge smallest = queue.top();
-		queue.pop();
-
-		segmentation.setUnion(smallest.source, smallest.destination);
-
-		updateWeights(queue, bidirAdjList, segmentation, smallest.source);
-		updateWeigths(queue, bidirAdjList, segmentation, smallest.destination);
-	}
-}
-*/
-
-static double euclidDistance(const Mat &m1, const Mat &m2) {
-  return norm(m1 - m2);
-}
-
-DisjointSetForest felzenszwalbImageSegment(int k, const Mat &image, 
-					   const Mat_<float> &mask, int minCompSize,
-					   ScaleType ScaleType = CARDINALITY,
-					   ) {
-  assert(k >= 0);
-  WeightedGraph graph = gridGraph(image, CONNECTIVITY_4, mask, euclidDistance, false);
-  
-  return felzenszwalbSegment(k, graph, minCompSize, mask, ScaleType);
+    return felzenszwalbSegment(k, *graph, mincompsize, mask, st);
+  }
 }

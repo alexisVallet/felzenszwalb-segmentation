@@ -8,7 +8,6 @@
 #include <vector>
 #include <algorithm>
 #include <opencv2/opencv.hpp>
-#include <boost/heap/fibonacci_heap.hpp>
 
 #include "WeightedGraph.hpp"
 #include "DisjointSet.hpp"
@@ -18,7 +17,6 @@
 
 using namespace std;
 using namespace cv;
-using namespace boost::heap;
 
 /**
  * Type specifying which type of scale measure to use for segment sizes, either
@@ -43,49 +41,33 @@ enum ScaleType { CARDINALITY, VOLUME };
  */
 DisjointSetForest felzenszwalbSegment(int k, WeightedGraph graph, int minCompSize, Mat_<float> mask, ScaleType scaleType = CARDINALITY);
 
-/**
- * Combines segmentations of the same graph by the following rule:
- * two neighboring vertices in the graph are in the same component iff
- * they are in the same component in all segmentations. Useful for
- * combining segmentations of separate channels of a color image. 
- *
- * Weights are ignored, only the graph structure is kept - it is assumed the
- * segmentations were done on the same unweighted graph.
- *
- * @param graph the graph segmented by the segmentations
- * @param segmentations segmentations of sourceImage to combine.
- */
-DisjointSetForest combineSegmentations(const WeightedGraph &imageGraph, vector<DisjointSetForest> &segmentations);
+extern "C" {
+  /**
+   * Wrapper for the graph functions.
+   */
+  WeightedGraph *c_gridGraph(const float *image, int rows, int cols, 
+			     int fdim, int bidirectional);
 
-/**
- * Fuse small adjacent components recursively until the number of components in
- * the segmentation is smaller or equal to a given number. Can be used as a post
- * processing step to Felzenszwalb's algorithm to make sure there are few enough
- * components.
- *
- * @param nbComponents the number of components to reduce the segmentation to.
- * @param segmentation "over segmentation" to reduce the number of components of.
- * @param gridGraph grid graph representing the adjacency structure between elements
- * of the segmentation. Should therefore have n vertices where n is the number of 
- * elements in the segmentation.
- */
-//void fuseComponentsDownTo(int nbComponents, DisjointSetForest &segmentation, const WeightedGraph& gridGraph);
+  void *free_graph(WeightedGraph *graph);
 
-/**
- * Segments an image using Felzenszwalb's method. Returns the result as
- * a disjoint set forest data structure. Also goes through a post processing
- * phase to weed out small components.
- *
- * @param k scale parameter.
- * @param image image to segment. Can have an arbitrary number of channels - can be
- *        a feature map of some kind.
- * @param minCompSize minimum size of components.
- * @param scaleType type of scale measure to use for segment size in the threshold
- * function. This is defined as cardinality in the original paper by Felzenszwalb,
- * but we introduce volume as a way of making the algorithm sensitive to local
- * scale.
- * @return a segmentation of the image as a disjoint set forest in row-major order.
- */
-DisjointSetForest felzenszwalbImageSegment(int k, const Mat &image, 
-					   const Mat_<float> &mask, int minCompSize,
-					   ScaleType ScaleType = CARDINALITY);
+  /**
+   * Wrapper for the DisjointSetForest class.
+   */
+  // DisjointSetForest new_DisjointSetForest(int nbelems);
+
+  // int find(DisjointSetForest *forest, int elem);
+
+  // int setUnion(DisjointSetForest *forest, int e1, int e2);
+
+  // int getNumberOfComponents(DisjointSetForest *forest);
+
+  // int getComponentSize(DisjointSetForest *forest, int elem);
+
+  // /**
+  //  * Wrapper for felzenszwalb's segmentation algorithm.
+  //  */
+  // DisjointSetForest c_felzenszwalbSegment(int k, const WeightedGraph *graph,
+  // 					  int mincompsize,
+  // 					  int rows, int cols,
+  // 					  ScaleType st);
+}

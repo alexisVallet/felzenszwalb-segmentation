@@ -57,38 +57,6 @@ void WeightedGraph::drawGraph(vector<Vec<float,2> > verticesPositions, Mat &imag
 	}
 }
 
-void WeightedGraph::drawGraphWithEmbedding(vector<Vec<float,2> > verticesPositions, Mat &imageToDrawOn, graph_t boostGraph, embedding_t embedding) {
-	for (int i = 0; i < this->numberOfVertices(); i++) {
-		property_traits<embedding_t>::value_type::const_iterator it;
-		Scalar color = Scalar(rand()%255,rand()%255,rand()%255);
-
-		for (it = embedding[i].begin(); it != embedding[i].end(); it++) {
-			int dst =
-				get(vertex_index, boostGraph, target(*it, boostGraph)) ==  i ? 
-				get(vertex_index, boostGraph, source(*it, boostGraph)) :
-				get(vertex_index, boostGraph, target(*it, boostGraph));
-		    Vec<float,2> srcPos = verticesPositions[i];
-			Vec<float,2> dstPos = verticesPositions[dst];
-
-			cout<<"Drawing edge between "<<i<<" and "<<dst<<endl;
-			line(imageToDrawOn, Point((int)floor(srcPos[1]), (int)floor(srcPos[0])), Point((int)floor(dstPos[1]), (int)floor(dstPos[0])), color);
-			imshow("graph", imageToDrawOn);
-			waitKey(0);
-		}
-	}
-}
-
-graph_t WeightedGraph::toBoostGraph() {
-  graph_t
-    graph(this->adjacencyLists.size());
-  
-  for (int i = 0; i < (int)this->edges.size(); i++) {
-    add_edge(this->edges[i].source, this->edges[i].destination, graph);
-  }
-
-  return graph;
-}
-
 const vector<HalfEdge> &WeightedGraph::getAdjacencyList(int vertex) const {
 	return this->adjacencyLists[vertex];
 }
@@ -147,8 +115,9 @@ void connectedComponents(const WeightedGraph &graph, vector<int> &inConnectedCom
 
 bool connected(const WeightedGraph& graph) {
 	int nbCC;
+	vector<int> tmp;
 
-	connectedComponents(graph, vector<int>(), &nbCC);
+	connectedComponents(graph, tmp, &nbCC);
 
 	return nbCC == 1;
 }

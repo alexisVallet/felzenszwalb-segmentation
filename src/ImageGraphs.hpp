@@ -27,7 +27,7 @@ using namespace std;
  * adjacency list representation. This is useful for more efficient listing of vertices
  * neighbors, but consumes more space.
  */
-WeightedGraph gridGraph(const Mat_<Vec3f> &image, ConnectivityType connectivity, Mat_<float> mask, double (*simFunc)(const Mat&, const Mat&), bool bidirectional = false);
+WeightedGraph gridGraph(const Mat &image, ConnectivityType connectivity, Mat_<float> mask, double (*simFunc)(const Mat*, const Mat*), bool bidirectional = false);
 
 /**
  * Returns a graph where vertices are pixels in the image, and every vertex has an edge
@@ -42,4 +42,4 @@ WeightedGraph gridGraph(const Mat_<Vec3f> &image, ConnectivityType connectivity,
  * undirected graph) as the k nearest neighbor relation is not symmetric.
  * @return the nearest neighbor graph of the image.
  */
-WeightedGraph kNearestGraph(const Mat_<Vec3f> &image, const Mat_<float> mask, int k, double (*simFunc)(const Mat&, const Mat&), bool bidirectional = false);
+WeightedGraph kNearestGraph(const Mat_<Vec3f> &image, const Mat_<float> mask, int k, double (*simFunc)(const Mat*, const Mat*), bool bidirectional = false);
